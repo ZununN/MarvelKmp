@@ -1,46 +1,45 @@
 package kz.zunun.marvel_kmp
 
 import android.app.Application
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import kz.zunun.data.core.dataModule
-import org.koin.android.ext.koin.androidContext
-import org.koin.core.context.startKoin
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalSavedStateRegistryOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.DefaultComponentContext
 
-class AndroidApp : Application() {
-    companion object {
-        lateinit var INSTANCE: AndroidApp
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-
-//        startKoin {
-//            androidContext(this@AndroidApp)
-//            dataModule
-//        }
-        INSTANCE = this
-    }
-}
+class AndroidApp : Application()
 
 class AppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { App() }
+        setContent {
+            App(rememberComponentContext())
+        }
     }
+
 }
 
-internal actual fun openUrl(url: String?) {
-    val uri = url?.let { Uri.parse(it) } ?: return
-    val intent = Intent().apply {
-        action = Intent.ACTION_VIEW
-        data = uri
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+@Composable
+fun rememberComponentContext(): ComponentContext {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val savedStateRegistry = LocalSavedStateRegistryOwner.current.savedStateRegistry
+    val viewModelStore = LocalViewModelStoreOwner.current?.viewModelStore
+    val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+
+    return remember(lifecycle, savedStateRegistry, viewModelStore, onBackPressedDispatcher) {
+        DefaultComponentContext(
+            lifecycle = lifecycle,
+            savedStateRegistry = savedStateRegistry,
+            viewModelStore = viewModelStore,
+            onBackPressedDispatcher = onBackPressedDispatcher
+        )
     }
-    AndroidApp.INSTANCE.startActivity(intent)
 }

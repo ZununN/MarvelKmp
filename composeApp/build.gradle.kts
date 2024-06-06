@@ -21,15 +21,6 @@ kotlin {
                 }
             }
         }
-        //https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-test.html
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        instrumentedTestVariant {
-            sourceSetTree.set(KotlinSourceSetTree.test)
-            dependencies {
-                debugImplementation(libs.androidx.testManifest)
-                implementation(libs.androidx.junit4)
-            }
-        }
     }
 
     listOf(
@@ -50,23 +41,40 @@ kotlin {
             }
         }
         commonMain.dependencies {
+            implementation(libs.decompose)
+            implementation(libs.decompose.jetbrains)
+
             implementation(projects.domain)
             implementation(projects.data)
+            implementation(projects.core)
+            implementation(projects.characters)
+            implementation(projects.characterDetail)
 
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+
             implementation(libs.composeImageLoader)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.core)
+
             implementation(libs.kotlinx.serialization.json)
+
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
+
+            implementation(libs.coil.compose.core)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.mp)
+            implementation(libs.coil.network.ktor)
         }
 
         androidMain.dependencies {
+            implementation(libs.androidx.lifecycle.viewmodel.compose.android)
+            implementation(libs.decompose)
+            implementation(libs.decompose.jetbrains)
             implementation(projects.domain)
             implementation(projects.data)
             implementation(libs.koin.android)
@@ -105,17 +113,7 @@ android {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")
         res.srcDirs("src/androidMain/res")
     }
-    //https://developer.android.com/studio/test/gradle-managed-devices
-    @Suppress("UnstableApiUsage")
-    testOptions {
-        managedDevices.devices {
-            maybeCreate<ManagedVirtualDevice>("pixel5").apply {
-                device = "Pixel 5"
-                apiLevel = 34
-                systemImageSource = "aosp"
-            }
-        }
-    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

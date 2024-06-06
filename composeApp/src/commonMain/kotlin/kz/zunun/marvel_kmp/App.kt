@@ -1,144 +1,113 @@
 package kz.zunun.marvel_kmp
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.annotation.ExperimentalCoilApi
+import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
+import kotlinx.serialization.Serializable
+import kz.zunun.character_detail.CharacterDetailComponent
+import kz.zunun.character_detail.CharacterDetailScreen
+import kz.zunun.characters.CharactersComponent
+import kz.zunun.characters.CharactersScreen
+import kz.zunun.characters.charactersModule
 import kz.zunun.data.core.dataModule
-import kz.zunun.domain.characters.CharactersRepository
-import kz.zunun.domain.common.onSuccess
-import kz.zunun.marvel_kmp.theme.AppTheme
-import kz.zunun.marvel_kmp.theme.LocalThemeIsDark
-import marvelkmp.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.Font
-import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.KoinApplication
-import org.koin.compose.koinInject
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
+import coil3.request.CachePolicy
+import coil3.request.crossfade
+import coil3.util.DebugLogger
+import okio.FileSystem
 
+@OptIn(ExperimentalCoilApi::class)
 @Composable
-internal fun App() {
+internal fun App(
+    componentContext: ComponentContext,
+) {
+    setSingletonImageLoaderFactory { context ->
+        getAsyncImageLoader(context)
+    }
 
     KoinApplication(
-        application = { modules(dataModule) }
+        application = { modules(dataModule, charactersModule) }
     ) {
-        var text by remember { mutableStateOf("") }
-        val repository = koinInject<CharactersRepository>()
+        val root = remember(componentContext) { RootComponent(componentContext) }
 
-        LaunchedEffect(Unit) {
-            repository.fetchCharacters().onSuccess {
-                text = it.toString()
-            }
+        Children(root.stack) {
 
-        }
-
-        AppTheme {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = text,
-                    fontFamily = FontFamily(Font(Res.font.IndieFlower_Regular)),
-                    style = MaterialTheme.typography.displayLarge
-                )
-
-                var isAnimate by remember { mutableStateOf(false) }
-                val transition = rememberInfiniteTransition()
-                val rotate by transition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 360f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1000, easing = LinearEasing)
-                    )
-                )
-
-                Image(
-                    modifier = Modifier
-                        .size(250.dp)
-                        .padding(16.dp)
-                        .run { if (isAnimate) rotate(rotate) else this },
-                    imageVector = vectorResource(Res.drawable.ic_cyclone),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
-                    contentDescription = null
-                )
-
-                ElevatedButton(
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .widthIn(min = 200.dp),
-                    onClick = { isAnimate = !isAnimate },
-                    content = {
-                        Icon(
-                            vectorResource(Res.drawable.ic_rotate_right),
-                            contentDescription = null
-                        )
-                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                        Text(
-                            stringResource(if (isAnimate) Res.string.stop else Res.string.run)
-                        )
-                    }
-                )
-
-                var isDark by LocalThemeIsDark.current
-                val icon = remember(isDark) {
-                    if (isDark) Res.drawable.ic_light_mode
-                    else Res.drawable.ic_dark_mode
-                }
-
-                ElevatedButton(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        .widthIn(min = 200.dp),
-                    onClick = { isDark = !isDark },
-                    content = {
-                        Icon(vectorResource(icon), contentDescription = null)
-                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                        Text(stringResource(Res.string.theme))
-                    }
-                )
-
-                TextButton(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        .widthIn(min = 200.dp),
-                    onClick = { openUrl("https://github.com/terrakok") },
-                ) {
-                    Text(stringResource(Res.string.open_github))
+            Box(Modifier.background(Color.White)) {
+                when (val component = it.instance) {
+                    is CharactersComponent -> CharactersScreen(component)
+                    is CharacterDetailComponent -> CharacterDetailScreen(component)
                 }
             }
         }
     }
 }
 
-internal expect fun openUrl(url: String?)
+
+class RootComponent(
+    componentContext: ComponentContext,
+) : ComponentContext by componentContext {
+
+    private val navigator = StackNavigation<Config>()
+
+    val stack = childStack(
+        source = navigator,
+        initialConfiguration = Config.CharactersScreen,
+        handleBackButton = true,
+        childFactory = ::child,
+        serializer = Config.serializer()
+    )
+
+    private fun child(
+        config: Config,
+        componentContext: ComponentContext,
+    ) = when (config) {
+        is Config.CharacterDetails -> CharacterDetailComponent(componentContext, config.id) {
+            navigator.pop()
+        }
+
+        is Config.CharactersScreen -> CharactersComponent(componentContext) {
+            navigator.push(Config.CharacterDetails(it))
+        }
+    }
+
+}
+
+@Serializable
+sealed interface Config {
+
+    @Serializable
+    data object CharactersScreen : Config
+
+    @Serializable
+    data class CharacterDetails(val id: Int) : Config
+}
+
+
+fun getAsyncImageLoader(context: PlatformContext): ImageLoader {
+    fun newDiskCache(): DiskCache {
+        return DiskCache.Builder().directory(FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "image_cache")
+            .maxSizeBytes(1024L * 1024 * 1024) // 512MB
+            .build()
+    }
+
+    return ImageLoader.Builder(context).memoryCachePolicy(CachePolicy.ENABLED).memoryCache {
+        MemoryCache.Builder().maxSizePercent(context, 0.3).strongReferencesEnabled(true).build()
+    }.diskCachePolicy(CachePolicy.ENABLED).networkCachePolicy(CachePolicy.ENABLED).diskCache {
+        newDiskCache()
+    }.crossfade(true).logger(DebugLogger()).build()
+}
